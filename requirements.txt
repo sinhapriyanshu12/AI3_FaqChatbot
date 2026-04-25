@@ -8,3 +8,4 @@ pymupdf
 python-docx
 python-multipart
 pydantic
+pytest
