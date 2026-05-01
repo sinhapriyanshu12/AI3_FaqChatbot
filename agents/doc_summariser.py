@@ -1,113 +1,95 @@
 """Document summariser for PDF and Word files."""
 
-from __future__ import annotations
+import json
+import os
+import fitz  # PyMuPDF
+from docx import Document as DocxDocument
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from pathlib import Path
-import re
+from langchain_google_genai import ChatGoogleGenerativeAI
+from agents.base import get_gemini
+from dotenv import load_dotenv
 
-from agents.base import split_sentences, tokenize
-from data.pipeline.ingest import read_document
-
-DATE_PATTERNS = [
-    re.compile(r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b"),
-    re.compile(
-        r"\b\d{1,2}\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b",
-        re.IGNORECASE,
-    ),
-    re.compile(
-        r"\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b",
-        re.IGNORECASE,
-    ),
-]
-ACTION_TERMS = {
-    "submit",
-    "respond",
-    "complete",
-    "pay",
-    "attend",
-    "upload",
-    "verify",
-    "report",
-    "send",
-    "must",
-    "required",
-    "deadline",
-}
+load_dotenv()
 
 
-def _extract_dates(text: str) -> list[str]:
-    found: list[str] = []
-    for pattern in DATE_PATTERNS:
-        found.extend(match.group(0) for match in pattern.finditer(text))
-
-    seen: set[str] = set()
-    unique_dates: list[str] = []
-    for item in found:
-        lowered = item.lower()
-        if lowered not in seen:
-            seen.add(lowered)
-            unique_dates.append(item)
-    return unique_dates[:10]
+def extract_text_from_pdf(file_path: str) -> str:
+    doc = fitz.open(file_path)
+    return "\n".join([page.get_text() for page in doc])
 
 
-def _guess_title(text: str, path: Path) -> str:
-    for line in text.splitlines():
-        stripped = line.strip()
-        if len(stripped) >= 6:
-            return stripped[:120]
-    return path.stem.replace("_", " ").title()
+def extract_text_from_docx(file_path: str) -> str:
+    doc = DocxDocument(file_path)
+    return "\n".join([para.text for para in doc.paragraphs])
 
 
-def _rank_sentences(text: str) -> list[str]:
-    sentences = split_sentences(text)
-    frequencies: dict[str, int] = {}
-    for token in tokenize(text):
-        frequencies[token] = frequencies.get(token, 0) + 1
+def extract_text(file_path: str) -> str:
+    if file_path.endswith(".pdf"):
+        return extract_text_from_pdf(file_path)
+    elif file_path.endswith(".docx"):
+        return extract_text_from_docx(file_path)
+    else:
+        raise ValueError("Only PDF and DOCX files are supported.")
 
-    scored: list[tuple[float, str]] = []
-    for sentence in sentences:
-        sentence_tokens = tokenize(sentence)
-        if len(sentence_tokens) < 4:
-            continue
-        score = sum(frequencies.get(token, 0) for token in sentence_tokens) / len(sentence_tokens)
-        if sentence.strip().endswith("?"):
-            score *= 0.6
-        scored.append((score, sentence))
 
-    return [sentence for _, sentence in sorted(scored, reverse=True)]
+SUMMARY_PROMPT = """You are a document analysis assistant for a school administrator.
+Analyse the document text below and respond ONLY with a JSON object.
+No preamble, no markdown, no explanation — just the JSON.
+
+Return this exact structure:
+{{
+  "title_guess": "your best guess at the document title",
+  "summary_bullets": ["bullet 1", "bullet 2", "bullet 3"],
+  "key_dates": ["date 1 with context", "date 2 with context"],
+  "action_required": true or false,
+  "action_description": "what action must be taken, or null if none"
+}}
+
+Document text:
+{text}"""
 
 
 def summarise_document(file_path: str) -> dict:
-    """Return structured JSON summary output."""
-    path = Path(file_path)
-    parts = read_document(path)
-    text = "\n".join(part["text"] for part in parts if part["text"]).strip()
+    """Return structured JSON summary of a PDF or Word document."""
+    text = extract_text(file_path)
 
-    if not text:
+    if not text.strip():
         return {
-            "title_guess": path.stem,
-            "summary_bullets": ["No readable text was found in the uploaded document."],
+            "title_guess": "Unknown Document",
+            "summary_bullets": ["No readable text found in document."],
             "key_dates": [],
             "action_required": False,
-            "action_description": "",
+            "action_description": None,
         }
 
-    ranked_sentences = _rank_sentences(text)
-    summary_bullets = ranked_sentences[:5] or [text[:200]]
+    word_count = len(text.split())
 
-    action_sentences = [
-        sentence
-        for sentence in split_sentences(text)
-        if any(term in tokenize(sentence) for term in ACTION_TERMS)
-    ]
-    action_required = bool(action_sentences)
-    preferred_actions = [sentence for sentence in action_sentences if not sentence.strip().endswith("?")]
-    action_description = preferred_actions[0] if preferred_actions else (action_sentences[0] if action_sentences else "")
+    # Long document — chunk and summarise each part first
+    if word_count > 3000:
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=2000, chunk_overlap=200
+        )
+        chunks = splitter.split_text(text)
 
-    return {
-        "title_guess": _guess_title(text, path),
-        "summary_bullets": summary_bullets[:5],
-        "key_dates": _extract_dates(text),
-        "action_required": action_required,
-        "action_description": action_description[:300],
-    }
+        llm = get_gemini()
+        chunk_summaries = []
+        for chunk in chunks:
+            response = llm.invoke(
+                f"Summarise this section of a school document in 3 sentences:\n{chunk}"
+            )
+            chunk_summaries.append(response.content)
+
+        combined = "\n".join(chunk_summaries)
+    else:
+        combined = text
+
+    # Final structured output using Gemini JSON mode
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash",
+        google_api_key=os.getenv("GEMINI_API_KEY"),
+        temperature=0.1,
+        generation_config={"response_mime_type": "application/json"},
+    )
+
+    prompt = SUMMARY_PROMPT.format(text=combined)
+    response = llm.invoke(prompt)
+    return json.loads(response.content)
