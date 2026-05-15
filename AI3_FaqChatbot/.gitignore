@@ -1,0 +1,13 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+node_modules/
+dist/
+build/
+data/processed/faiss_index/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
