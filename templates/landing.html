@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KALNET AI-3 — School Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --dark: #0d1117;
+    --dark-2: #161b24;
+    --cream: #f5f0e8;
+    --peach: #f0dcc8;
+    --peach-glow: #e8c4a0;
+    --warm-mid: #d4956a;
+    --text-light: rgba(255,255,255,0.88);
+    --text-muted: rgba(255,255,255,0.45);
+    --text-dark: #1a1208;
+    --text-dark-muted: #6b5a45;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--dark);
+    color: var(--text-light);
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 20px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.6s ease, border-color 0.6s ease;
+    border-bottom: 1px solid transparent;
+  }
+  nav.scrolled {
+    background: rgba(245,240,232,0.88);
+    backdrop-filter: blur(20px);
+    border-color: rgba(180,150,110,0.2);
+  }
+  nav.scrolled .logo { color: var(--text-dark); }
+  nav.scrolled .nav-links a { color: var(--text-dark-muted); }
+  nav.scrolled .nav-cta {
+    background: var(--text-dark);
+    color: var(--cream);
+    border-color: var(--text-dark);
+  }
+
+  .logo {
+    font-family: var(--font-body);
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--text-light);
+    text-decoration: none;
+    transition: color 0.6s ease;
+  }
+  .logo span {
+    display: inline-block;
+    border: 1.5px solid currentColor;
+    border-radius: 30px;
+    padding: 5px 18px 6px;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 8px;
+    list-style: none;
+    background: rgba(255,255,255,0.08);
+    border-radius: 30px;
+    padding: 6px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.12);
+    transition: background 0.6s ease, border-color 0.6s ease;
+  }
+  nav.scrolled .nav-links {
+    background: rgba(0,0,0,0.06);
+    border-color: rgba(0,0,0,0.1);
+  }
+  .nav-links a {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 18px;
+    border-radius: 20px;
+    transition: color 0.3s, background 0.3s;
+    letter-spacing: 0.02em;
+  }
+  .nav-links a:hover {
+    color: var(--text-light);
+    background: rgba(255,255,255,0.1);
+  }
+  nav.scrolled .nav-links a:hover {
+    color: var(--text-dark);
+    background: rgba(0,0,0,0.06);
+  }
+
+  .nav-cta { display: none; }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background-image: url('/static/Background-Scenery.png');
+    background-size: cover;
+    background-position: center 30%;
+    background-repeat: no-repeat;
+  }
+  .hero-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to bottom, rgba(10,15,20,0.55) 0%, rgba(10,15,20,0.35) 50%, rgba(10,15,20,0.7) 100%);
+  }
+
+  /* blobs removed — real background image used */
+
+  .hero-content {
+    position: relative;
+    text-align: center;
+    z-index: 2;
+    animation: fadeUp 1.2s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero-eyebrow {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+    
+  }
+
+  .hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(52px, 7vw, 96px);
+    font-weight: 300;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    color: #fff;
+    margin-bottom: 28px;
+  }
+  .hero-title em {
+    font-style: italic;
+    color: rgba(255,255,255,0.65);
+  }
+
+  .hero-sub {
+    font-size: 16px;
+    font-weight: 300;
+    color: var(--text-muted);
+    max-width: 440px;
+    margin: 0 auto 52px;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    z-index: 2;
+    animation: fadeUp 1.6s 0.4s ease both;
+  }
+  .scroll-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.4); }
+  }
+
+  /* ── TRANSITION SECTION ── */
+  .transition-zone {
+    height: 200px;
+    background: linear-gradient(to bottom, var(--dark) 0%, #2a1f14 50%, var(--peach) 100%);
+  }
+
+  /* ── WARM SECTIONS ── */
+  .warm-section {
+    background: var(--peach);
+    color: var(--text-dark);
+    padding: 80px 48px 100px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-dark-muted);
+    margin-bottom: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--warm-mid);
+    border-radius: 50%;
+  }
+
+  /* ── VISION BLOCK ── */
+  .vision-block {
+    max-width: 860px;
+    margin: 0 auto 100px;
+  }
+  .vision-quote {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4vw, 52px);
+    font-weight: 300;
+    line-height: 1.25;
+    color: var(--text-dark);
+    margin-bottom: 32px;
+  }
+  .vision-quote em { font-style: italic; color: var(--text-dark-muted); }
+  .vision-body {
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.8;
+    color: var(--text-dark-muted);
+    max-width: 580px;
+  }
+
+  /* ── FEATURES CARDS ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 960px;
+    margin: 0 auto 100px;
+  }
+
+  .feature-card {
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(180,130,80,0.2);
+    border-radius: 20px;
+    padding: 40px;
+    backdrop-filter: blur(10px);
+    transition: transform 0.3s ease, background 0.3s ease;
+  }
+  .feature-card:hover {
+    transform: translateY(-4px);
+    background: rgba(255,255,255,0.7);
+  }
+  .feature-icon {
+    font-size: 28px;
+    margin-bottom: 20px;
+  }
+  .feature-title {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--text-dark);
+    margin-bottom: 14px;
+    line-height: 1.2;
+  }
+  .feature-desc {
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.8;
+    color: var(--text-dark-muted);
+    margin-bottom: 28px;
+  }
+  .feature-link {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dark);
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--text-dark);
+    padding-bottom: 2px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .feature-link:hover { color: var(--warm-mid); border-color: var(--warm-mid); }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: rgba(180,130,80,0.2);
+    border: 1px solid rgba(180,130,80,0.2);
+    border-radius: 16px;
+    overflow: hidden;
+    max-width: 780px;
+    margin: 0 auto 100px;
+  }
+  .stat-cell {
+    background: var(--peach);
+    padding: 40px 32px;
+    text-align: center;
+  }
+  .stat-number {
+    font-family: var(--font-display);
+    font-size: 52px;
+    font-weight: 300;
+    color: var(--text-dark);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .stat-label {
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    color: var(--text-dark-muted);
+    text-transform: uppercase;
+  }
+
+  /* ── TEAM ── */
+  .team-section {
+    background: #f0e8d8;
+    padding: 80px 48px 100px;
+  }
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .team-card {
+    padding: 28px 20px;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(180,130,80,0.15);
+    border-radius: 16px;
+    text-align: center;
+    transition: transform 0.3s ease;
+  }
+  .team-card:hover { transform: translateY(-3px); }
+  .team-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #c9956a, #e8c4a0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: #fff;
+    margin: 0 auto 14px;
+  }
+  .team-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dark);
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .team-role {
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--text-dark-muted);
+    line-height: 1.5;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--dark);
+    color: var(--text-muted);
+    padding: 40px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+  .footer-logo {
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--text-light);
+    opacity: 0.6;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── SCROLL REVEAL ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+
+  @media (max-width: 768px) {
+    nav { padding: 16px 24px; }
+    .nav-links { display: none; }
+    .warm-section, .team-section { padding: 60px 24px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .team-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-row { grid-template-columns: 1fr; }
+    footer { flex-direction: column; gap: 12px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+  <a href="/" class="logo"><span>KALNET</span></a>
+  <ul class="nav-links">
+    <li><a href="/chat">FAQ Bot</a></li>
+    <li><a href="/summarise">Summariser</a></li>
+    <li><a href="#about">About</a></li>
+  </ul>
+  <a href="/chat" class="nav-cta">Try it free</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+
+  <div class="hero-content">
+    <p class="hero-eyebrow">· KALNET  AI-3 ·</p>
+    <h1 class="hero-title">The school office,<br><em>reimagined.</em></h1>
+    <p style="font-family:'Cormorant Garamond',serif;font-size:clamp(18px,2vw,26px);font-weight:300;font-style:italic;color:rgba(255,255,255,0.45);margin-bottom:52px;letter-spacing:0.04em;">AI that understands your school.</p>
+  </div>
+
+  <div class="scroll-hint">
+    <span class="scroll-dot"></span>
+    Scroll
+  </div>
+</section>
+
+<!-- DARK → WARM TRANSITION -->
+<div class="transition-zone"></div>
+
+<!-- WARM SECTION -->
+<section class="warm-section">
+  <div class="section-label reveal">What we built</div>
+
+  <!-- VISION -->
+  <div class="vision-block reveal reveal-delay-1">
+    <p class="vision-quote">A student asks a question.<br>The answer arrives in <em>3 seconds</em>,<br>with its source cited.</p>
+    <p class="vision-body">KALNET AI-3 brings a RAG-powered FAQ chatbot and an intelligent document summariser directly into your school portal. No hallucinations. No guessing. Only answers found in your own documents.</p>
+  </div>
+
+  <!-- FEATURES -->
+  <div class="features-grid">
+    <div class="feature-card reveal reveal-delay-1">
+      <div class="feature-icon">💬</div>
+      <h3 class="feature-title">FAQ Chatbot</h3>
+      <p class="feature-desc">Ask anything about admissions, fees, or school rules. The bot searches your documents and replies with the answer and the source — or honestly says it doesn't know.</p>
+      <a href="/chat" class="feature-link">Start a conversation →</a>
+    </div>
+    <div class="feature-card reveal reveal-delay-2">
+      <div class="feature-icon">📄</div>
+      <h3 class="feature-title">Document Summariser</h3>
+      <p class="feature-desc">Upload a 12-page government circular. In 8 seconds get 5 bullet points, key dates, and whether action is required — so nothing important slips through.</p>
+      <a href="/summarise" class="feature-link">Summarise a document →</a>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row reveal">
+    <div class="stat-cell">
+      <div class="stat-number">3s</div>
+      <div class="stat-label">Average response</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-number">0</div>
+      <div class="stat-label">Hallucinations</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-number">∞</div>
+      <div class="stat-label">Documents supported</div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="team-section" id="about">
+  <div class="section-label reveal">The team</div>
+  <div class="team-grid">
+    <div class="team-card reveal reveal-delay-1">
+      <div class="team-avatar">P</div>
+      <div class="team-name">Priyanshu</div>
+      <div class="team-role">Team Lead<br>Architecture & Vector Store</div>
+    </div>
+    <div class="team-card reveal reveal-delay-2">
+      <div class="team-avatar">A</div>
+      <div class="team-name">Aditya Lenka</div>
+      <div class="team-role">LLM Engineer 1<br>RAG Chain & Knowledge Base</div>
+    </div>
+    <div class="team-card reveal reveal-delay-3">
+      <div class="team-avatar">V</div>
+      <div class="team-name">V. Aashrith</div>
+      <div class="team-role">LLM Engineer 2<br>Document Summariser</div>
+    </div>
+    <div class="team-card reveal reveal-delay-4">
+      <div class="team-avatar">C</div>
+      <div class="team-name">Chirag Jain</div>
+      <div class="team-role">Data Engineer<br>Ingestion Pipeline</div>
+    </div>
+    <div class="team-card reveal reveal-delay-1">
+      <div class="team-avatar">B</div>
+      <div class="team-name">Bollam Ankith</div>
+      <div class="team-role">API Dev & QA<br>FastAPI & Chat Widget</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">KALNET</div>
+  <div>· FAQ Chatbot + Document Summariser · 2026</div>
+  <div>Built with ❤️ by AI-3 Pod </div>
+</footer>
+
+<script>
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 80) navbar.classList.add('scrolled');
+    else navbar.classList.remove('scrolled');
+  });
+
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.15 });
+  reveals.forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

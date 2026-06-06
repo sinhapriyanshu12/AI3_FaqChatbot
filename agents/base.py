@@ -25,3 +25,4 @@ def get_gemini():
         api_key=os.getenv("GROQ_API_KEY"),
         temperature=0.1,
     )
+

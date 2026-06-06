@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document Summariser — KALNET AI-3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --dark: #0d1117;
+    --cream: #f5f0e8;
+    --peach: #f0dcc8;
+    --peach-dark: #e8cdb0;
+    --warm-mid: #c9956a;
+    --text-dark: #1a1208;
+    --text-muted: #6b5a45;
+    --green: #4a7c59;
+    --red: #8b3a3a;
+    --font-display: 'Cormorant Garamond', serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+  body {
+    font-family: var(--font-body);
+    background: var(--peach);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  nav {
+    background: rgba(245,240,232,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(180,130,80,0.15);
+    padding: 16px 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .logo {
+    font-family: var(--font-display);
+    font-size: 20px; font-weight: 400;
+    color: var(--text-dark); text-decoration: none; letter-spacing: 0.08em;
+  }
+  .logo span { border: 1px solid currentColor; border-radius: 20px; padding: 2px 12px 3px; }
+  .nav-links { display: flex; gap: 6px; list-style: none; background: rgba(0,0,0,0.05); border-radius: 30px; padding: 5px; border: 1px solid rgba(0,0,0,0.08); }
+  .nav-links a { font-size: 13px; color: var(--text-muted); text-decoration: none; padding: 5px 16px; border-radius: 20px; transition: all 0.2s; }
+  .nav-links a:hover, .nav-links a.active { color: var(--text-dark); background: rgba(255,255,255,0.7); }
+
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 0;
+    overflow: hidden;
+    max-height: calc(100vh - 65px);
+  }
+
+  /* LEFT — UPLOAD */
+  .upload-panel {
+    background: rgba(255,255,255,0.3);
+    border-right: 1px solid rgba(180,130,80,0.15);
+    padding: 40px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    overflow-y: auto;
+  }
+  .panel-title {
+    font-family: var(--font-display);
+    font-size: 28px; font-weight: 300;
+    color: var(--text-dark);
+    line-height: 1.2;
+  }
+  .panel-sub {
+    font-size: 13px; font-weight: 300;
+    color: var(--text-muted); line-height: 1.7;
+  }
+
+  /* DROP ZONE */
+  .drop-zone {
+    border: 1.5px dashed rgba(201,149,106,0.4);
+    border-radius: 16px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: rgba(255,255,255,0.3);
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--warm-mid);
+    background: rgba(255,255,255,0.6);
+  }
+  .drop-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-icon { font-size: 36px; margin-bottom: 14px; display: block; }
+  .drop-title { font-size: 15px; font-weight: 400; color: var(--text-dark); margin-bottom: 6px; }
+  .drop-hint { font-size: 12px; font-weight: 300; color: var(--text-muted); }
+
+  .file-preview {
+    display: none;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(201,149,106,0.25);
+    border-radius: 12px;
+    padding: 16px;
+    gap: 12px;
+    align-items: center;
+  }
+  .file-preview.visible { display: flex; }
+  .file-icon { font-size: 24px; flex-shrink: 0; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 13px; font-weight: 500; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-size { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .file-remove { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 18px; padding: 4px; border-radius: 50%; transition: color 0.2s; }
+  .file-remove:hover { color: var(--red); }
+
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--dark);
+    color: rgba(255,255,255,0.88);
+    border: none;
+    border-radius: 12px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .submit-btn:hover:not(:disabled) { background: #2a3a55; transform: translateY(-1px); }
+  .submit-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+  .divider { height: 1px; background: rgba(180,130,80,0.2); }
+
+  .tip-block { font-size: 12px; font-weight: 300; color: var(--text-muted); line-height: 1.8; }
+  .tip-block strong { font-weight: 500; color: var(--text-dark); }
+
+  /* RIGHT — RESULTS */
+  .result-panel {
+    padding: 40px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .result-panel::-webkit-scrollbar { width: 4px; }
+  .result-panel::-webkit-scrollbar-thumb { background: rgba(180,130,80,0.3); border-radius: 2px; }
+
+  /* Empty state */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 16px;
+    color: var(--text-muted);
+  }
+  .empty-icon { font-size: 48px; opacity: 0.4; }
+  .empty-title { font-family: var(--font-display); font-size: 24px; font-weight: 300; color: var(--text-dark); opacity: 0.5; }
+  .empty-sub { font-size: 13px; font-weight: 300; max-width: 300px; line-height: 1.7; }
+
+  /* Loading state */
+  .loading-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex: 1;
+    text-align: center;
+  }
+  .loading-state.active { display: flex; }
+  .loading-ring {
+    width: 48px; height: 48px;
+    border: 2px solid rgba(201,149,106,0.2);
+    border-top-color: var(--warm-mid);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: var(--font-display); font-size: 22px; font-weight: 300; color: var(--text-dark); }
+  .loading-sub { font-size: 13px; color: var(--text-muted); }
+
+  /* Result cards */
+  .result-header {
+    display: none;
+    animation: fadeIn 0.5s ease both;
+  }
+  .result-header.visible { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .result-title-guess {
+    font-family: var(--font-display);
+    font-size: 32px; font-weight: 300;
+    color: var(--text-dark);
+    line-height: 1.2;
+    margin-bottom: 8px;
+  }
+  .result-meta {
+    font-size: 12px; color: var(--text-muted);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  .result-card {
+    background: rgba(255,255,255,0.55);
+    border: 1px solid rgba(180,130,80,0.15);
+    border-radius: 16px;
+    padding: 28px;
+    display: none;
+    animation: fadeIn 0.5s ease both;
+  }
+  .result-card.visible { display: block; }
+  .card-label {
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-label::before { content: ''; width: 5px; height: 5px; background: var(--warm-mid); border-radius: 50%; display: inline-block; }
+
+  .bullet-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .bullet-item {
+    display: flex; gap: 12px; align-items: flex-start;
+    font-size: 14px; font-weight: 300; color: var(--text-dark); line-height: 1.7;
+  }
+  .bullet-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--warm-mid); flex-shrink: 0; margin-top: 8px;
+  }
+
+  .dates-list { display: flex; flex-direction: column; gap: 8px; }
+  .date-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 10px;
+    border: 1px solid rgba(180,130,80,0.12);
+    font-size: 13px; font-weight: 300; color: var(--text-dark);
+  }
+  .date-icon { font-size: 16px; }
+
+  .action-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+  .action-badge.yes {
+    background: rgba(139,58,58,0.1);
+    color: var(--red);
+    border: 1px solid rgba(139,58,58,0.2);
+  }
+  .action-badge.no {
+    background: rgba(74,124,89,0.1);
+    color: var(--green);
+    border: 1px solid rgba(74,124,89,0.2);
+  }
+  .action-desc {
+    font-size: 14px; font-weight: 300;
+    color: var(--text-dark); line-height: 1.7;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 10px;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo"><span>KALNET</span></a>
+  <ul class="nav-links">
+    <li><a href="/chat">FAQ Bot</a></li>
+    <li><a href="/summarise" class="active">Summariser</a></li>
+    <li><a href="/#about">About</a></li>
+  </ul>
+</nav>
+
+<main>
+  <!-- UPLOAD PANEL -->
+  <div class="upload-panel">
+    <div>
+      <div class="panel-title">Document<br>Summariser</div>
+    </div>
+    <div class="panel-sub">Upload a PDF or Word document. Get a structured summary with key dates and action items in seconds.</div>
+
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept=".pdf,.docx" onchange="handleFile(this.files[0])">
+      <span class="drop-icon">📄</span>
+      <div class="drop-title">Drop your document here</div>
+      <div class="drop-hint">PDF or Word · Any length</div>
+    </div>
+
+    <div class="file-preview" id="file-preview">
+      <span class="file-icon" id="file-icon">📄</span>
+      <div class="file-info">
+        <div class="file-name" id="file-name">—</div>
+        <div class="file-size" id="file-size">—</div>
+      </div>
+      <button class="file-remove" onclick="clearFile()">×</button>
+    </div>
+
+    <button class="submit-btn" id="submit-btn" disabled onclick="submitFile()">
+      <span>Summarise document</span>
+    </button>
+
+    <div class="divider"></div>
+    <div class="tip-block">
+      <strong>What you'll get</strong><br><br>
+      · 3–5 bullet point summary<br>
+      · Key dates extracted<br>
+      · Action required flag<br>
+      · Plain-language description of next steps
+    </div>
+  </div>
+
+  <!-- RESULT PANEL -->
+  <div class="result-panel" id="result-panel">
+
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">☁</div>
+      <div class="empty-title">Nothing yet</div>
+      <div class="empty-sub">Upload a document on the left and the summary will appear here.</div>
+    </div>
+
+    <div class="loading-state" id="loading-state">
+      <div class="loading-ring"></div>
+      <div class="loading-text">Reading the document…</div>
+      <div class="loading-sub">Extracting key information</div>
+    </div>
+
+    <div class="result-header" id="result-header">
+      <div class="result-title-guess" id="result-title"></div>
+      <div class="result-meta" id="result-meta"></div>
+    </div>
+
+    <div class="result-card" id="card-summary">
+      <div class="card-label">Summary</div>
+      <ul class="bullet-list" id="summary-bullets"></ul>
+    </div>
+
+    <div class="result-card" id="card-dates">
+      <div class="card-label">Key dates</div>
+      <div class="dates-list" id="dates-list"></div>
+    </div>
+
+    <div class="result-card" id="card-action">
+      <div class="card-label">Action required</div>
+      <div id="action-content"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+  let selectedFile = null;
+
+  const dropZone = document.getElementById('drop-zone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  function handleFile(file) {
+    if (!file) return;
+    selectedFile = file;
+    document.getElementById('file-icon').textContent = file.name.endsWith('.pdf') ? '📕' : '📘';
+    document.getElementById('file-name').textContent = file.name;
+    document.getElementById('file-size').textContent = (file.size / 1024).toFixed(1) + ' KB';
+    document.getElementById('file-preview').classList.add('visible');
+    document.getElementById('submit-btn').disabled = false;
+  }
+
+  function clearFile() {
+    selectedFile = null;
+    document.getElementById('file-preview').classList.remove('visible');
+    document.getElementById('submit-btn').disabled = true;
+    document.getElementById('file-input').value = '';
+  }
+
+  async function submitFile() {
+    if (!selectedFile) return;
+
+    document.getElementById('empty-state').style.display = 'none';
+    document.getElementById('loading-state').classList.add('active');
+    document.getElementById('result-header').classList.remove('visible');
+    ['card-summary','card-dates','card-action'].forEach(id => document.getElementById(id).classList.remove('visible'));
+    document.getElementById('submit-btn').disabled = true;
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const res = await fetch('/ai/summarise', { method: 'POST', body: formData });
+      const data = await res.json();
+      document.getElementById('loading-state').classList.remove('active');
+      renderResult(data);
+    } catch (e) {
+      document.getElementById('loading-state').classList.remove('active');
+      document.getElementById('empty-state').style.display = 'flex';
+      document.getElementById('empty-state').querySelector('.empty-title').textContent = 'Something went wrong';
+    }
+    document.getElementById('submit-btn').disabled = false;
+  }
+
+  function renderResult(data) {
+    document.getElementById('result-title').textContent = data.title_guess || 'Document Summary';
+    document.getElementById('result-meta').textContent = selectedFile.name + ' · ' + new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('result-header').classList.add('visible');
+
+    const bullets = document.getElementById('summary-bullets');
+    bullets.innerHTML = '';
+    (data.summary_bullets || []).forEach(b => {
+      const li = document.createElement('li');
+      li.className = 'bullet-item';
+      li.innerHTML = `<span class="bullet-dot"></span><span>${b}</span>`;
+      bullets.appendChild(li);
+    });
+    document.getElementById('card-summary').classList.add('visible');
+
+    const dates = document.getElementById('dates-list');
+    dates.innerHTML = '';
+    if (data.key_dates && data.key_dates.length > 0) {
+      data.key_dates.forEach(d => {
+        const item = document.createElement('div');
+        item.className = 'date-item';
+        item.innerHTML = `<span class="date-icon">📅</span><span>${d}</span>`;
+        dates.appendChild(item);
+      });
+      document.getElementById('card-dates').classList.add('visible');
+    }
+
+    const actionContent = document.getElementById('action-content');
+    const badge = document.createElement('div');
+    badge.className = `action-badge ${data.action_required ? 'yes' : 'no'}`;
+    badge.innerHTML = data.action_required ? '⚠ Action required' : '✓ No action required';
+    actionContent.innerHTML = '';
+    actionContent.appendChild(badge);
+    if (data.action_description) {
+      const desc = document.createElement('div');
+      desc.className = 'action-desc';
+      desc.textContent = data.action_description;
+      actionContent.appendChild(desc);
+    }
+    document.getElementById('card-action').classList.add('visible');
+  }
+</script>
+</body>
+</html>
