@@ -14,7 +14,7 @@
 
 *Retrieval-Augmented Generation (RAG) Chatbot + AI Document Summarisation*
 
-[🚀 Live Demo](https://YOUR-RENDER-URL.onrender.com)
+[🚀 Live Demo](https://ai3-faqchatbot.onrender.com/)
 
 </div>
 
